@@ -1,5 +1,3 @@
-# Rethinking Data Augmentation for Robust LiDAR Semantic Segmentation in Adverse Weather
-
 <div align="center">
 <h1>[ECCV 2024] Rethinking Data Augmentation for Robust LiDAR Semantic Segmentation in Adverse Weather</h1>
 
