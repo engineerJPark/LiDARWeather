@@ -3,7 +3,9 @@
 
 Junsung Park, Kyungmin Kim, Hyunjung Shim
 
-<a href="https://arxiv.org/abs/2407.02286"><img src='https://img.shields.io/badge/arXiv-2407.02286-red?logo=arXiv' alt='arXiv'></a>
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/rethinking-data-augmentation-for-robust-lidar/lidar-semantic-segmentation-on-semanticstf)](https://paperswithcode.com/sota/lidar-semantic-segmentation-on-semanticstf?p=rethinking-data-augmentation-for-robust-lidar)
+
+[![PWC](https://img.shields.io/badge/arXiv-2407.02286-red?logo=arXiv)](https://arxiv.org/abs/2407.02286)
 
 ## Contents
 
