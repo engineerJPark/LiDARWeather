@@ -13,4 +13,4 @@ Code will be released soon. Stay tuned!
 
 ## Acknowledgement
 
-- Our codebase for the diffusion models builds heavily on [mmdetection3d](https://github.com/open-mmlab/mmdetection3d)
+- Our codebase builds heavily on [mmdetection3d](https://github.com/open-mmlab/mmdetection3d)
