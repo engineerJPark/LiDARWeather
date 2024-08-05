@@ -22,7 +22,7 @@ Existing LiDAR semantic segmentation methods often struggle in adverse weather c
 
 <br>
 <p align="center">
-  <img src="docs/figs/newfig2_overview.png" align="center" width="50%">
+  <img src="docs/figs/newfig2_overview.png" align="center" width="95%">
   <br>
   Fig. The overall training process of our methods.
 </p>
@@ -267,7 +267,7 @@ Please refer to [GET_STARTED.md](docs/GET_STARTED.md) to learn more details.
 
 <br>
 <p align="center">
-  <img src="docs/figs/Fig6.png" align="center" width="85%">
+  <img src="docs/figs/Fig6.png" align="center" width="95%">
   <br>
   Fig. Qualitative results of our methods.
 </p>
