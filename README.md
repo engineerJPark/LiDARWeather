@@ -269,7 +269,7 @@ Please refer to [GET_STARTED.md](docs/GET_STARTED.md) to learn more details.
 <p align="center">
   <img src="docs/figs/Fig6.png" align="center" width="85%">
   <br>
-  Fig. The overall training process of our methods.
+  Fig. Qualitative results of our methods.
 </p>
 <br>
 
