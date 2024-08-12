@@ -1,5 +1,5 @@
 <div style="text-align: center;">
-  <h1>[ECCV 2024] Rethinking Data Augmentation for Robust LiDAR Semantic Segmentation in Adverse Weather</h1>
+  <h1>[ECCV 2024 Oral] Rethinking Data Augmentation for Robust LiDAR Semantic Segmentation in Adverse Weather</h1>
 
   <b>Junsung Park, Kyungmin Kim, Hyunjung Shim</b><br>
   CVML Lab. KAIST AI.<br>
