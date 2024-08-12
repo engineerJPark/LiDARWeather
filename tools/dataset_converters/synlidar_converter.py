@@ -1,7 +1,6 @@
 from os import path as osp
 from pathlib import Path
 
-from ForkedPdb import ForkedPdb; pdb = ForkedPdb()
 import mmengine
 
 total_num = {

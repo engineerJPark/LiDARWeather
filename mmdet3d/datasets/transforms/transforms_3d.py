@@ -22,7 +22,6 @@ from .data_augment_utils import noise_per_object_v3_
 
 from mmdet3d.structures.points.lidar_points import LiDARPoints
 
-from ForkedPdb import ForkedPdb; pdb = ForkedPdb()
 import copy
 
 @TRANSFORMS.register_module()

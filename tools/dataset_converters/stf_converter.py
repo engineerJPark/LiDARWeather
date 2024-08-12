@@ -12,7 +12,6 @@ from mmdet3d.structures.ops import box_np_ops
 from .stf_data_utils import WaymoInfoGatherer, get_stf_image_info
 from .nuscenes_converter import post_process_coords
 
-from ForkedPdb import ForkedPdb; pdb = ForkedPdb()
 import pickle
 stf_categories = ('Pedestrian', 'Cyclist', 'Car')
 
@@ -292,22 +291,6 @@ def create_stf_info_file(data_path,
                 _calculate_num_points_in_gt(data_path, kitti_infos_test, relative_path, num_features=5)
                 print(f'Kitti info train file is saved to {test_filename}')
                 mmengine.dump(kitti_infos_test, test_filename)
-
-        # if train and gt:
-        #     print('starting to create groundtruth database for data augmentation')
-
-        #     # sample_id_list = set_split(imageset_folder, train_split)
-        #     # pdb.set_trace()
-        #     create_groundtruth_database(
-        #         'STFDataset',
-        #         data_path,
-        #         pkl_prefix,
-        #         save_path / f'stf_infos_{train_split}.pkl', # f'{out_dir}/{pkl_prefix}_infos_train.pkl',
-        #         relative_path=False,
-        #         mask_anno_path='instances_train.json',
-        #         with_mask=(version == 'mask'),)
-        #         # with_bbox=True)
-        #     print(f'data preparation for {time}time scenes finished')
 
     pkl_dir = save_path
     for stage in ['train', 'val', 'trainval']:

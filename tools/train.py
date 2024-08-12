@@ -11,7 +11,6 @@ from mmengine.runner import Runner
 
 from mmdet3d.utils import replace_ceph_backend
 
-from ForkedPdb import ForkedPdb; pdb = ForkedPdb()
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a 3D detector')

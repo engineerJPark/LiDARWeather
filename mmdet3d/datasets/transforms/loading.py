@@ -14,8 +14,6 @@ from mmdet3d.registry import TRANSFORMS
 from mmdet3d.structures.bbox_3d import get_box_type
 from mmdet3d.structures.points import BasePoints, get_points_type
 
-from ForkedPdb import ForkedPdb; pdb = ForkedPdb()
-
 import numpy as np
 def sigmoid(x):  
     return np.exp(-np.logaddexp(0, -x))

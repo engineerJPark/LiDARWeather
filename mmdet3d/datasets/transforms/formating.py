@@ -12,8 +12,6 @@ from mmdet3d.registry import TRANSFORMS
 from mmdet3d.structures import BaseInstance3DBoxes, Det3DDataSample, PointData
 from mmdet3d.structures.points import BasePoints
 
-from ForkedPdb import ForkedPdb; pdb = ForkedPdb()
-
 def to_tensor(
     data: Union[torch.Tensor, np.ndarray, Sequence, int,
                 float]) -> torch.Tensor:
@@ -48,12 +46,7 @@ def to_tensor(
 
 @TRANSFORMS.register_module()
 class Pack3DDetInputs(BaseTransform):
-    INPUTS_KEYS = ['points', 'img', 'img_strong', 'mask',
-                   ## newly added
-                   'points_depthselectivejitter', 
-                   'points_pjt', 'points_severe_pjt',
-                   'projection_mask', 'severe_projection_mask',
-                   'points_aug']
+    INPUTS_KEYS = ['points', 'img']
     INSTANCEDATA_3D_KEYS = [
         'gt_bboxes_3d', 'gt_labels_3d', 'attr_labels', 'depths', 'centers_2d'
     ]
@@ -64,11 +57,7 @@ class Pack3DDetInputs(BaseTransform):
 
     SEG_KEYS = [
         'gt_seg_map', 'pts_instance_mask', 'pts_semantic_mask',
-        'gt_semantic_seg', 'gt_semantic_seg_strong',
-        ## newly added
-        'pts_semantic_mask_pjt', 'pts_semantic_mask_severe_pjt', 'subsample_idx',
-        'pts_semantic_mask_depthselectivejitter', 'pts_semantic_mask_aug',
-    ]
+        'gt_semantic_seg']
 
     def __init__(
         self,
@@ -153,19 +142,6 @@ class Pack3DDetInputs(BaseTransform):
         if 'points' in results:
             if isinstance(results['points'], BasePoints):
                 results['points'] = results['points'].tensor
-        ## newly added
-        if 'points_depthselectivejitter' in results:
-            if isinstance(results['points_depthselectivejitter'], BasePoints):
-                results['points_depthselectivejitter'] = results['points_depthselectivejitter'].tensor
-        if 'points_pjt' in results:
-            if isinstance(results['points_pjt'], BasePoints):
-                results['points_pjt'] = results['points_pjt'].tensor
-        if 'points_aug' in results:
-            if isinstance(results['points_aug'], BasePoints):
-                results['points_aug'] = results['points_aug'].tensor
-        if 'points_severe_pjt' in results:
-            if isinstance(results['points_severe_pjt'], BasePoints):
-                results['points_severe_pjt'] = results['points_severe_pjt'].tensor
 
         if 'img' in results:
             if isinstance(results['img'], list):
@@ -192,63 +168,11 @@ class Pack3DDetInputs(BaseTransform):
                         np.ascontiguousarray(img.transpose(2, 0, 1)))
                 results['img'] = img
 
-        if 'img_strong' in results: ## newly added
-            if isinstance(results['img_strong'], list):
-                # process multiple imgs in single frame
-                imgs = np.stack(results['img_strong'], axis=0)
-                if imgs.flags.c_contiguous:
-                    imgs = to_tensor(imgs).permute(0, 3, 1, 2).contiguous()
-                else:
-                    imgs = to_tensor(
-                        np.ascontiguousarray(imgs.transpose(0, 3, 1, 2)))
-                results['img_strong'] = imgs
-            else:
-                img = results['img_strong']
-                if len(img.shape) < 3:
-                    img = np.expand_dims(img, -1)
-                # To improve the computational speed by by 3-5 times, apply:
-                # `torch.permute()` rather than `np.transpose()`.
-                # Refer to https://github.com/open-mmlab/mmdetection/pull/9533
-                # for more details
-                if img.flags.c_contiguous:
-                    img = to_tensor(img).permute(2, 0, 1).contiguous()
-                else:
-                    img = to_tensor(
-                        np.ascontiguousarray(img.transpose(2, 0, 1)))
-                results['img_strong'] = img
-
-        if 'mask' in results: ## newly added
-            if isinstance(results['mask'], list):
-                # process multiple imgs in single frame
-                imgs = np.stack(results['mask'], axis=0)
-                if imgs.flags.c_contiguous:
-                    imgs = to_tensor(imgs).permute(0, 3, 1, 2).contiguous()
-                else:
-                    imgs = to_tensor(
-                        np.ascontiguousarray(imgs.transpose(0, 3, 1, 2)))
-                results['mask'] = imgs
-            else:
-                img = results['mask']
-                if len(img.shape) < 3:
-                    img = np.expand_dims(img, -1)
-                # To improve the computational speed by by 3-5 times, apply:
-                # `torch.permute()` rather than `np.transpose()`.
-                # Refer to https://github.com/open-mmlab/mmdetection/pull/9533
-                # for more details
-                if img.flags.c_contiguous:
-                    img = to_tensor(img).permute(2, 0, 1).contiguous()
-                else:
-                    img = to_tensor(
-                        np.ascontiguousarray(img.transpose(2, 0, 1)))
-                results['mask'] = img
 
         for key in [
                 'proposals', 'gt_bboxes', 'gt_bboxes_ignore', 'gt_labels',
                 'gt_bboxes_labels', 'attr_labels', 'pts_instance_mask',
-                'pts_semantic_mask', 'centers_2d', 'depths', 'gt_labels_3d',
-                ## newly added
-                'pts_semantic_mask_pjt', 'pts_semantic_mask_severe_pjt', 'subsample_idx',
-                'pts_semantic_mask_depthselectivejitter', 'pts_semantic_mask_aug'
+                'pts_semantic_mask', 'centers_2d', 'depths', 'gt_labels_3d'
         ]:
             if key not in results:
                 continue
@@ -263,9 +187,7 @@ class Pack3DDetInputs(BaseTransform):
         if 'gt_semantic_seg' in results:
             results['gt_semantic_seg'] = to_tensor(
                 results['gt_semantic_seg'][None])
-        if 'gt_semantic_seg_strong' in results: ## newly added
-            results['gt_semantic_seg_strong'] = to_tensor(
-                results['gt_semantic_seg_strong'][None])
+
         if 'gt_seg_map' in results:
             results['gt_seg_map'] = results['gt_seg_map'][None, ...]
 
@@ -330,7 +252,6 @@ class Pack3DDetInputs(BaseTransform):
         packed_results['data_samples'] = data_sample
         packed_results['inputs'] = inputs
 
-        # pdb.set_trace()
         return packed_results
 
     def __repr__(self) -> str:

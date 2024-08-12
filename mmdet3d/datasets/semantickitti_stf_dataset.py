@@ -6,8 +6,6 @@ import numpy as np
 from mmdet3d.registry import DATASETS
 from .seg3d_dataset import Seg3DDataset
 
-from ForkedPdb import ForkedPdb; pdb = ForkedPdb()
-
 @DATASETS.register_module()
 class SemanticSTFDataset(Seg3DDataset):
     r"""SemanticKitti Dataset.

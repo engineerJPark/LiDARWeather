@@ -18,8 +18,6 @@ from mmdet3d.utils import OptConfigType
 from .utils import multiview_img_stack_batch
 from .voxelize import VoxelizationByGridShape
 
-from ForkedPdb import ForkedPdb; pdb = ForkedPdb()
-
 @MODELS.register_module()
 class Det3DDataPreprocessor(DetDataPreprocessor):
     """Points / Image pre-processor for point clouds / vision-only / multi-
@@ -172,10 +170,6 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
         """
         if 'img' in data['inputs']:
             batch_pad_shape = self._get_pad_shape(data)
-        if 'img_strong' in data['inputs']: ## newly added
-            batch_pad_shape_strong = self._get_pad_shape_strong(data)
-        if 'mask' in data['inputs']: ## newly added
-            batch_pad_shape_strong = self._get_pad_shape_mask(data)
 
         data = self.collate_data(data)
         inputs, data_samples = data['inputs'], data['data_samples']
@@ -183,29 +177,12 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
 
         if 'points' in inputs:
             batch_inputs['points'] = inputs['points']
-        if 'points_pjt' in inputs: ## newly added
-            batch_inputs['points_pjt'] = inputs['points_pjt']
-        if 'points_aug' in inputs: ## newly added
-            batch_inputs['points_aug'] = inputs['points_aug']
-        if 'projection_mask' in inputs: ## newly added
-            batch_inputs['projection_mask'] = inputs['projection_mask']
-        if 'points_depthselectivejitter' in inputs: ## newly added
-            batch_inputs['points_depthselectivejitter'] = inputs['points_depthselectivejitter']
         if self.voxel:
             voxel_dict = self.voxelize(inputs['points'], data_samples, flexible=self.flexible_voxel_default, gamma=self.flexible_gamma)
             batch_inputs['voxels'] = voxel_dict
             ## for flexible voxel constraint
             voxel_dict_flex = self.voxelize(inputs['points'], data_samples, flexible=True, gamma=self.flexible_gamma)
             batch_inputs['voxels_flex'] = voxel_dict_flex
-            if 'points_pjt' in inputs: ## newly added
-                voxel_dict_pjt = self.voxelize(inputs['points_pjt'], data_samples)
-                batch_inputs['voxels_pjt'] = voxel_dict_pjt
-            if 'points_aug' in inputs: ## newly added
-                voxel_dict_aug = self.voxelize(inputs['points_aug'], data_samples)
-                batch_inputs['voxels_aug'] = voxel_dict_aug
-            if 'points_depthselectivejitter' in inputs: ## newly added
-                voxel_dict_depthselectivejitter = self.voxelize(inputs['points_depthselectivejitter'], data_samples)
-                batch_inputs['voxels_depthselectivejitter'] = voxel_dict_depthselectivejitter
 
         if 'imgs' in inputs:
             imgs = inputs['imgs']
@@ -233,61 +210,6 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
                 for batch_aug in self.batch_augments:
                     imgs, data_samples = batch_aug(imgs, data_samples)
             batch_inputs['imgs'] = imgs
-
-        if 'imgs_strong' in inputs: ## newly added
-            imgs = inputs['imgs_strong']
-
-            if data_samples is not None:
-                # NOTE the batched image size information may be useful, e.g.
-                # in DETR, this is needed for the construction of masks, which
-                # is then used for the transformer_head.
-                batch_input_shape = tuple(imgs[0].size()[-2:])
-                for data_sample, pad_shape in zip(data_samples,
-                                                  batch_pad_shape_strong):
-                    data_sample.set_metainfo({
-                        'batch_input_shape': batch_input_shape,
-                        'pad_shape': pad_shape
-                    })
-
-                if self.boxtype2tensor:
-                    samplelist_boxtype2tensor(data_samples)
-                if self.pad_mask:
-                    self.pad_gt_masks(data_samples)
-                if self.pad_seg:
-                    self.pad_gt_sem_seg(data_samples)
-
-            if training and self.batch_augments is not None:
-                for batch_aug in self.batch_augments:
-                    imgs, data_samples = batch_aug(imgs, data_samples)
-            batch_inputs['imgs_strong'] = imgs
-
-
-        if 'mask' in inputs: ## newly added
-            imgs = inputs['mask']
-
-            if data_samples is not None:
-                # NOTE the batched image size information may be useful, e.g.
-                # in DETR, this is needed for the construction of masks, which
-                # is then used for the transformer_head.
-                batch_input_shape = tuple(imgs[0].size()[-2:])
-                for data_sample, pad_shape in zip(data_samples,
-                                                  batch_pad_shape_strong):
-                    data_sample.set_metainfo({
-                        'batch_input_shape': batch_input_shape,
-                        'pad_shape': pad_shape
-                    })
-
-                if self.boxtype2tensor:
-                    samplelist_boxtype2tensor(data_samples)
-                if self.pad_mask:
-                    self.pad_gt_masks(data_samples)
-                if self.pad_seg:
-                    self.pad_gt_sem_seg(data_samples)
-
-            if training and self.batch_augments is not None:
-                for batch_aug in self.batch_augments:
-                    imgs, data_samples = batch_aug(imgs, data_samples)
-            batch_inputs['mask'] = imgs
 
         return {'inputs': batch_inputs, 'data_samples': data_samples}
 
@@ -379,120 +301,6 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
 
             data['inputs']['imgs'] = batch_imgs
 
-        ## newly added
-        if 'img_strong' in data['inputs']:
-            _batch_imgs = data['inputs']['img_strong']
-            # Process data with `pseudo_collate`.
-            if is_seq_of(_batch_imgs, torch.Tensor):
-                batch_imgs = []
-                img_dim = _batch_imgs[0].dim()
-                for _batch_img in _batch_imgs:
-                    if img_dim == 3:  # standard img
-                        _batch_img = self.preprocess_img(_batch_img)
-                    elif img_dim == 4:
-                        _batch_img = [
-                            self.preprocess_img(_img) for _img in _batch_img
-                        ]
-
-                        _batch_img = torch.stack(_batch_img, dim=0)
-
-                    batch_imgs.append(_batch_img)
-
-                # Pad and stack Tensor.
-                if img_dim == 3:
-                    batch_imgs = stack_batch(batch_imgs, self.pad_size_divisor,
-                                             self.pad_value)
-                elif img_dim == 4:
-                    batch_imgs = multiview_img_stack_batch(
-                        batch_imgs, self.pad_size_divisor, self.pad_value)
-
-            # Process data with `default_collate`.
-            elif isinstance(_batch_imgs, torch.Tensor):
-                assert _batch_imgs.dim() == 4, (
-                    'The input of `ImgDataPreprocessor` should be a NCHW '
-                    'tensor or a list of tensor, but got a tensor with '
-                    f'shape: {_batch_imgs.shape}')
-                if self._channel_conversion:
-                    _batch_imgs = _batch_imgs[:, [2, 1, 0], ...]
-                # Convert to float after channel conversion to ensure
-                # efficiency
-                _batch_imgs = _batch_imgs.float()
-                if self._enable_normalize:
-                    _batch_imgs = (_batch_imgs - self.mean) / self.std
-                h, w = _batch_imgs.shape[2:]
-                target_h = math.ceil(
-                    h / self.pad_size_divisor) * self.pad_size_divisor
-                target_w = math.ceil(
-                    w / self.pad_size_divisor) * self.pad_size_divisor
-                pad_h = target_h - h
-                pad_w = target_w - w
-                batch_imgs = F.pad(_batch_imgs, (0, pad_w, 0, pad_h),
-                                   'constant', self.pad_value)
-            else:
-                raise TypeError(
-                    'Output of `cast_data` should be a list of dict '
-                    'or a tuple with inputs and data_samples, but got '
-                    f'{type(data)}: {data}')
-
-            data['inputs']['imgs_strong'] = batch_imgs
-
-        ## newly added
-        if 'mask' in data['inputs']:
-            _batch_imgs = data['inputs']['mask']
-            # Process data with `pseudo_collate`.
-            if is_seq_of(_batch_imgs, torch.Tensor):
-                batch_imgs = []
-                img_dim = _batch_imgs[0].dim()
-                for _batch_img in _batch_imgs:
-                    if img_dim == 3:  # standard img
-                        _batch_img = self.preprocess_img(_batch_img)
-                    elif img_dim == 4:
-                        _batch_img = [
-                            self.preprocess_img(_img) for _img in _batch_img
-                        ]
-
-                        _batch_img = torch.stack(_batch_img, dim=0)
-
-                    batch_imgs.append(_batch_img)
-
-                # Pad and stack Tensor.
-                if img_dim == 3:
-                    batch_imgs = stack_batch(batch_imgs, self.pad_size_divisor,
-                                             self.pad_value)
-                elif img_dim == 4:
-                    batch_imgs = multiview_img_stack_batch(
-                        batch_imgs, self.pad_size_divisor, self.pad_value)
-
-            # Process data with `default_collate`.
-            elif isinstance(_batch_imgs, torch.Tensor):
-                assert _batch_imgs.dim() == 4, (
-                    'The input of `ImgDataPreprocessor` should be a NCHW '
-                    'tensor or a list of tensor, but got a tensor with '
-                    f'shape: {_batch_imgs.shape}')
-                if self._channel_conversion:
-                    _batch_imgs = _batch_imgs[:, [2, 1, 0], ...]
-                # Convert to float after channel conversion to ensure
-                # efficiency
-                _batch_imgs = _batch_imgs.float()
-                if self._enable_normalize:
-                    _batch_imgs = (_batch_imgs - self.mean) / self.std
-                h, w = _batch_imgs.shape[2:]
-                target_h = math.ceil(
-                    h / self.pad_size_divisor) * self.pad_size_divisor
-                target_w = math.ceil(
-                    w / self.pad_size_divisor) * self.pad_size_divisor
-                pad_h = target_h - h
-                pad_w = target_w - w
-                batch_imgs = F.pad(_batch_imgs, (0, pad_w, 0, pad_h),
-                                   'constant', self.pad_value)
-            else:
-                raise TypeError(
-                    'Output of `cast_data` should be a list of dict '
-                    'or a tuple with inputs and data_samples, but got '
-                    f'{type(data)}: {data}')
-
-            data['inputs']['mask'] = batch_imgs
-
         data.setdefault('data_samples', None)
 
         return data
@@ -535,91 +343,10 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
                             'or a tuple with inputs and data_samples, but got '
                             f'{type(data)}: {data}')
         return batch_pad_shape
-    
-    ## newly added
-    def _get_pad_shape_strong(self, data: dict) -> List[Tuple[int, int]]:
-        """Get the pad_shape of each image based on data and
-        pad_size_divisor."""
-        # rewrite `_get_pad_shape` for obtaining image inputs.
-        _batch_inputs = data['inputs']['img_strong']
-        # Process data with `pseudo_collate`.
-        if is_seq_of(_batch_inputs, torch.Tensor):
-            batch_pad_shape = []
-            for ori_input in _batch_inputs:
-                if ori_input.dim() == 4:
-                    # mean multiview input, select one of the
-                    # image to calculate the pad shape
-                    ori_input = ori_input[0]
-                pad_h = int(
-                    np.ceil(ori_input.shape[1] /
-                            self.pad_size_divisor)) * self.pad_size_divisor
-                pad_w = int(
-                    np.ceil(ori_input.shape[2] /
-                            self.pad_size_divisor)) * self.pad_size_divisor
-                batch_pad_shape.append((pad_h, pad_w))
-        # Process data with `default_collate`.
-        elif isinstance(_batch_inputs, torch.Tensor):
-            assert _batch_inputs.dim() == 4, (
-                'The input of `ImgDataPreprocessor` should be a NCHW tensor '
-                'or a list of tensor, but got a tensor with shape: '
-                f'{_batch_inputs.shape}')
-            pad_h = int(
-                np.ceil(_batch_inputs.shape[1] /
-                        self.pad_size_divisor)) * self.pad_size_divisor
-            pad_w = int(
-                np.ceil(_batch_inputs.shape[2] /
-                        self.pad_size_divisor)) * self.pad_size_divisor
-            batch_pad_shape = [(pad_h, pad_w)] * _batch_inputs.shape[0]
-        else:
-            raise TypeError('Output of `cast_data` should be a list of dict '
-                            'or a tuple with inputs and data_samples, but got '
-                            f'{type(data)}: {data}')
-        return batch_pad_shape
-    
-    ## newly added
-    def _get_pad_shape_mask(self, data: dict) -> List[Tuple[int, int]]:
-        """Get the pad_shape of each image based on data and
-        pad_size_divisor."""
-        # rewrite `_get_pad_shape` for obtaining image inputs.
-        _batch_inputs = data['inputs']['mask']
-        # Process data with `pseudo_collate`.
-        if is_seq_of(_batch_inputs, torch.Tensor):
-            batch_pad_shape = []
-            for ori_input in _batch_inputs:
-                if ori_input.dim() == 4:
-                    # mean multiview input, select one of the
-                    # image to calculate the pad shape
-                    ori_input = ori_input[0]
-                pad_h = int(
-                    np.ceil(ori_input.shape[1] /
-                            self.pad_size_divisor)) * self.pad_size_divisor
-                pad_w = int(
-                    np.ceil(ori_input.shape[2] /
-                            self.pad_size_divisor)) * self.pad_size_divisor
-                batch_pad_shape.append((pad_h, pad_w))
-        # Process data with `default_collate`.
-        elif isinstance(_batch_inputs, torch.Tensor):
-            assert _batch_inputs.dim() == 4, (
-                'The input of `ImgDataPreprocessor` should be a NCHW tensor '
-                'or a list of tensor, but got a tensor with shape: '
-                f'{_batch_inputs.shape}')
-            pad_h = int(
-                np.ceil(_batch_inputs.shape[1] /
-                        self.pad_size_divisor)) * self.pad_size_divisor
-            pad_w = int(
-                np.ceil(_batch_inputs.shape[2] /
-                        self.pad_size_divisor)) * self.pad_size_divisor
-            batch_pad_shape = [(pad_h, pad_w)] * _batch_inputs.shape[0]
-        else:
-            raise TypeError('Output of `cast_data` should be a list of dict '
-                            'or a tuple with inputs and data_samples, but got '
-                            f'{type(data)}: {data}')
-        return batch_pad_shape
 
     @torch.no_grad()
     def voxelize(self, points: List[Tensor],
                  data_samples: SampleList,
-                 flexible=False,
                  gamma = 0.5) -> Dict[str, Tensor]:
         """Apply voxelization to point cloud.
 
@@ -694,14 +421,6 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
                             polar_res[:, coor_idx] <
                             min_bound[coor_idx]] = min_bound[coor_idx]
                 voxel_size = self.voxel_layer.voxel_size
-                if flexible == True: ## newly added
-                    if isinstance(voxel_size, list):
-                        voxel_size = torch.tensor(voxel_size, dtype=torch.float32)
-                    voxel_size = voxel_size.clone().detach()
-                    voxel_size = voxel_size \
-                                + (torch.FloatTensor(voxel_size.shape).uniform_(-voxel_size[0] * gamma, voxel_size[0] * gamma).to(voxel_size)) \
-                                * voxel_size
-                    voxel_size = voxel_size.tolist()
                 res_coors = torch.floor(
                     (polar_res_clamp - min_bound) / polar_res_clamp.new_tensor(
                         voxel_size)).int()
@@ -715,13 +434,6 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
         elif self.voxel_type == 'minkunet':
             voxels, coors, point2voxel_maps, voxel_inds = [], [], [], []
             voxel_size = points[0].new_tensor(self.voxel_layer.voxel_size)
-            if flexible == True: ## newly added
-                if isinstance(voxel_size, list):
-                    voxel_size = torch.tensor(voxel_size, dtype=torch.float32)
-                voxel_size = voxel_size.clone().detach()
-                voxel_size = voxel_size \
-                        + (torch.FloatTensor(voxel_size.shape).uniform_(-voxel_size[0] * gamma, voxel_size[0] * gamma).to(voxel_size)) \
-                        * voxel_size
             for i, res in enumerate(points):
                 res_coors = torch.round(res[:, :3] / voxel_size).int()
                 res_coors -= res_coors.min(0)[0]

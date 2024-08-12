@@ -8,13 +8,11 @@ from .seg3d_tta import Seg3DTTAModel
 from .semi_base import SemiBase3DSegmentor
 
 ### new added
-from .meanteacher_base import MeanTeacher3DSegmentor
 from .minkunet_weather_dropper import MinkUNetWeatherDropper
 
 __all__ = [
     'Base3DSegmentor', 'EncoderDecoder3D', 'Cylinder3D', 'MinkUNet',
     'Seg3DTTAModel', 'SemiBase3DSegmentor', 'LaserMix',
-    'MeanTeacher3DSegmentor',
     ### new added
     'MinkUNetWeatherDropper'
 ]
