@@ -63,26 +63,16 @@ class RangeImageHead(Base3DDecodeHead):
         seg_logit = self.cls_seg(feats[self.indices])
         return seg_logit
 
-    def _stack_batch_gt(self, batch_data_samples: SampleList, strong_points=False) -> Tensor:
-        if strong_points:
-            gt_semantic_segs = [
-                data_sample.gt_pts_seg.semantic_seg_strong
-                for data_sample in batch_data_samples
-            ]
-        else:
-            gt_semantic_segs = [
-                data_sample.gt_pts_seg.semantic_seg
-                for data_sample in batch_data_samples
-            ]
+    def _stack_batch_gt(self, batch_data_samples: SampleList) -> Tensor:
+        gt_semantic_segs = [
+            data_sample.gt_pts_seg.semantic_seg
+            for data_sample in batch_data_samples
+        ]
         return torch.stack(gt_semantic_segs, dim=0)
     
     ## added
     def loss(self, inputs: dict, batch_data_samples: SampleList,
-             train_cfg: ConfigType,
-             strong_points=False,
-             projected_points=False,
-             noisy_lasermix=False,
-             dr_aug=False):
+             train_cfg: ConfigType):
         """Forward function for training.
 
         Args:
@@ -96,19 +86,11 @@ class RangeImageHead(Base3DDecodeHead):
             Dict[str, Tensor]: A dictionary of loss components.
         """
         seg_logits = self.forward(inputs)
-        losses = self.loss_by_feat(seg_logits, batch_data_samples,
-                                   strong_points=strong_points,
-                                   projected_points=projected_points,
-                                   noisy_lasermix=noisy_lasermix,
-                                   dr_aug=dr_aug)
+        losses = self.loss_by_feat(seg_logits, batch_data_samples)
         return losses
 
     def loss_by_feat(self, seg_logit: Tensor,
-                     batch_data_samples: SampleList,
-                     strong_points=False,
-                     projected_points=False,
-                     noisy_lasermix=False,
-                     dr_aug=False) -> dict:
+                     batch_data_samples: SampleList) -> dict:
         """Compute semantic segmentation loss.
 
         Args:
@@ -120,7 +102,7 @@ class RangeImageHead(Base3DDecodeHead):
         Returns:
             Dict[str, Tensor]: A dictionary of loss components.
         """
-        seg_label = self._stack_batch_gt(batch_data_samples, strong_points=strong_points)
+        seg_label = self._stack_batch_gt(batch_data_samples)
         seg_label = seg_label.squeeze(dim=1)
         loss = dict()
         loss['loss_ce'] = self.loss_ce(

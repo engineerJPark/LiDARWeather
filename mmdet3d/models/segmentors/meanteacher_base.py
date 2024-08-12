@@ -74,10 +74,7 @@ class MeanTeacher3DSegmentor(Base3DSegmentor):
 
     def loss_by_gt_instances(
             self, batch_inputs: dict,
-            batch_data_samples: SampleList,
-            projected_points=False,
-            flexible_constraint=False,
-            adversarial_aug=False) -> Tuple[Tensor, dict]:
+            batch_data_samples: SampleList) -> Tuple[Tensor, dict]:
         """Calculate losses from a batch of inputs and ground-truth data
         samples.
 
@@ -90,43 +87,21 @@ class MeanTeacher3DSegmentor(Base3DSegmentor):
             batch_data_samples (List[:obj:`Det3DDataSample`]): The det3d data
                 samples. It usually includes information such as `metainfo` and
                 `gt_pts_seg`.
-
-                adversarial_aug는 내부연산에는 포함되지 않는다.
                 
         Returns:
             Tuple[Tensor, dict]: Predict logits and a dictionary of loss
             components.
         """
-        logits = self.student(batch_inputs, batch_data_samples, mode='tensor',
-                              projected_points=projected_points, flexible_constraint=flexible_constraint)
+        logits = self.student(batch_inputs, batch_data_samples, mode='tensor')
         sup_weight = self.train_cfg.get('main_weight', 1.)
-        if projected_points:
-            losses = self.student.decode_head.loss_by_feat(logits,
-                                                        batch_data_samples, projected_points=True)
-            losses = rename_loss_dict('pjt_',
-                                    reweight_loss_dict(losses, sup_weight))
-        elif flexible_constraint:
-            losses = self.student.decode_head.loss_by_feat(logits,
-                                                        batch_data_samples)
-            losses = rename_loss_dict('flexible_',
-                                    reweight_loss_dict(losses, sup_weight))
-        elif adversarial_aug:
-            losses = self.student.decode_head.loss_by_feat(logits,
-                                                        batch_data_samples)
-            losses = rename_loss_dict('adv_',
-                                    reweight_loss_dict(losses, sup_weight))
-        else:
-            losses = self.student.decode_head.loss_by_feat(logits,
-                                                        batch_data_samples)
-            losses = rename_loss_dict('main_',
-                                    reweight_loss_dict(losses, sup_weight))
+        losses = self.student.decode_head.loss_by_feat(logits,
+                                                    batch_data_samples)
+        losses = rename_loss_dict('main_',
+                                reweight_loss_dict(losses, sup_weight))
         return logits, losses
 
     def loss_by_pseudo_instances(self, batch_inputs: dict,
-                                 batch_data_samples: SampleList,
-                                 projected_points=False,
-                                 flexible_constraint=False,
-                                 adversarial_aug=False) -> dict:
+                                 batch_data_samples: SampleList) -> dict:
         """Calculate losses from a batch of inputs and pseudo data samples.
 
         Args:
@@ -142,29 +117,12 @@ class MeanTeacher3DSegmentor(Base3DSegmentor):
         Returns:
             dict: A dictionary of loss components
         """
-        logits = self.student(batch_inputs, batch_data_samples, mode='tensor',
-                              projected_points=projected_points, flexible_constraint=flexible_constraint)
+        logits = self.student(batch_inputs, batch_data_samples, mode='tensor')
         sup_weight = self.train_cfg.get('pseudo_weight', 1.)
-        if projected_points:
-            losses = self.student.decode_head.loss_by_feat(logits,
-                                                        batch_data_samples, projected_points=True)
-            losses = rename_loss_dict('pseudo_pjt_',
-                                    reweight_loss_dict(losses, sup_weight))
-        elif flexible_constraint:
-            losses = self.student.decode_head.loss_by_feat(logits,
-                                                        batch_data_samples)
-            losses = rename_loss_dict('pseudo_flexible_',
-                                    reweight_loss_dict(losses, sup_weight))
-        elif adversarial_aug:
-            losses = self.student.decode_head.loss_by_feat(logits,
-                                                        batch_data_samples)
-            losses = rename_loss_dict('pseudo_adv_',
-                                    reweight_loss_dict(losses, sup_weight))
-        else:
-            losses = self.student.decode_head.loss_by_feat(logits,
-                                                        batch_data_samples)
-            losses = rename_loss_dict('pseudo_main_',
-                                    reweight_loss_dict(losses, sup_weight))
+        losses = self.student.decode_head.loss_by_feat(logits,
+                                                    batch_data_samples)
+        losses = rename_loss_dict('pseudo_main_',
+                                reweight_loss_dict(losses, sup_weight))
         return logits, losses
 
     @torch.no_grad()

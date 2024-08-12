@@ -157,11 +157,7 @@ class EncoderDecoder3D(Base3DSegmentor):
 
     def _decode_head_forward_train(
             self, batch_inputs_dict: dict,
-            batch_data_samples: SampleList,
-            strong_points=False,
-            projected_points=False,
-            noisy_lasermix=False,
-            dr_aug=False) -> Dict[str, Tensor]:
+            batch_data_samples: SampleList) -> Dict[str, Tensor]:
         """Run forward function and calculate loss for decode head in training.
 
         Args:
@@ -175,11 +171,7 @@ class EncoderDecoder3D(Base3DSegmentor):
         """
         losses = dict()
         loss_decode = self.decode_head.loss(batch_inputs_dict,
-                                            batch_data_samples, self.train_cfg,
-                                            strong_points=strong_points,
-                                            projected_points=projected_points,
-                                            noisy_lasermix=noisy_lasermix,
-                                            dr_aug=dr_aug)
+                                            batch_data_samples, self.train_cfg)
 
         losses.update(add_prefix(loss_decode, 'decode'))
         return losses
@@ -187,9 +179,7 @@ class EncoderDecoder3D(Base3DSegmentor):
     def _auxiliary_head_forward_train(
         self,
         batch_inputs_dict: dict,
-        batch_data_samples: SampleList,
-        strong_points=False,
-        projected_points=False
+        batch_data_samples: SampleList
     ) -> Dict[str, Tensor]:
         """Run forward function and calculate loss for auxiliary head in
         training.
@@ -208,16 +198,12 @@ class EncoderDecoder3D(Base3DSegmentor):
         if isinstance(self.auxiliary_head, nn.ModuleList):
             for idx, aux_head in enumerate(self.auxiliary_head):
                 loss_aux = aux_head.loss(batch_inputs_dict, batch_data_samples,
-                                         self.train_cfg,
-                                         strong_points=strong_points,
-                                         projected_points=projected_points)
+                                         self.train_cfg)
                 losses.update(add_prefix(loss_aux, f'aux_{idx}'))
         else:
             loss_aux = self.auxiliary_head.loss(batch_inputs_dict,
                                                 batch_data_samples,
-                                                self.train_cfg,
-                                                strong_points=strong_points,
-                                                projected_points=projected_points)
+                                                self.train_cfg)
             losses.update(add_prefix(loss_aux, 'aux'))
 
         return losses
