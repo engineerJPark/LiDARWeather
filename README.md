@@ -7,8 +7,13 @@
   <a href="https://paperswithcode.com/sota/lidar-semantic-segmentation-on-semanticstf?p=rethinking-data-augmentation-for-robust-lidar">
     <img src="https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/rethinking-data-augmentation-for-robust-lidar/lidar-semantic-segmentation-on-semanticstf" alt="PWC">
   </a>
+  <br>
   <a href="https://arxiv.org/abs/2407.02286">
     <img src="https://img.shields.io/badge/arXiv-2407.02286-red?logo=arXiv" alt="arXiv">
+  </a>
+  <br>
+  <a href="https://engineerjpark.github.io/ECCV2024LiDARWeather" target='_blank'>
+   [Project Page]
   </a>
 </div>
 
@@ -30,6 +35,7 @@ Existing LiDAR semantic segmentation methods often struggle in adverse weather c
 
 ## Updates
 
+- \[2024.08\] - Our project page is opened! Check it out in <a href="https://engineerjpark.github.io/ECCV2024LiDARWeather" target='_blank'>here!</a>
 - \[2024.08\] - Official implementation is released! Also, our paper is available on arXiv, click <a href="https://arxiv.org/abs/2407.02286" target='_blank'>here</a> to check it out.
 
 
