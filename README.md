@@ -35,6 +35,7 @@ Existing LiDAR semantic segmentation methods often struggle in adverse weather c
 
 ## Updates
 
+- \[2024.09\] - Our paper is selected as **ORAL PRESENTATION** in ECCV 2024! [Link](https://eccv2024.ecva.net/virtual/2024/oral/884)
 - \[2024.08\] - Our project page is opened! Check it out in <a href="https://engineerjpark.github.io/ECCV2024LiDARWeather" target='_blank'>here!</a>
 - \[2024.08\] - Official implementation is released! Also, our paper is available on arXiv, click <a href="https://arxiv.org/abs/2407.02286" target='_blank'>here</a> to check it out.
 
