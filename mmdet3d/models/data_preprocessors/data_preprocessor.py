@@ -18,6 +18,7 @@ from mmdet3d.utils import OptConfigType
 from .utils import multiview_img_stack_batch
 from .voxelize import VoxelizationByGridShape
 
+
 @MODELS.register_module()
 class Det3DDataPreprocessor(DetDataPreprocessor):
     """Points / Image pre-processor for point clouds / vision-only / multi-
@@ -84,7 +85,7 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
 
     def __init__(self,
                  voxel: bool = False,
-                 voxel_type: str = 'hard', ## add 'random'
+                 voxel_type: str = 'hard',
                  voxel_layer: OptConfigType = None,
                  batch_first: bool = True,
                  max_voxels: Optional[int] = None,
@@ -100,8 +101,7 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
                  rgb_to_bgr: bool = False,
                  boxtype2tensor: bool = True,
                  non_blocking: bool = False,
-                 batch_augments: Optional[List[dict]] = None,
-                 flexible_voxel_default: bool = False) -> None:
+                 batch_augments: Optional[List[dict]] = None) -> None:
         super(Det3DDataPreprocessor, self).__init__(
             mean=mean,
             std=std,
@@ -122,10 +122,6 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
         self.max_voxels = max_voxels
         if voxel:
             self.voxel_layer = VoxelizationByGridShape(**voxel_layer)
-            self.flexible_voxel_default = flexible_voxel_default
-            self.flexible_gamma = 0.5
-        self.num = 0
-        self.mean_point = 0
 
     def forward(self,
                 data: Union[dict, List[dict]],
@@ -177,12 +173,10 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
 
         if 'points' in inputs:
             batch_inputs['points'] = inputs['points']
-        if self.voxel:
-            voxel_dict = self.voxelize(inputs['points'], data_samples, flexible=self.flexible_voxel_default, gamma=self.flexible_gamma)
-            batch_inputs['voxels'] = voxel_dict
-            ## for flexible voxel constraint
-            voxel_dict_flex = self.voxelize(inputs['points'], data_samples, flexible=True, gamma=self.flexible_gamma)
-            batch_inputs['voxels_flex'] = voxel_dict_flex
+
+            if self.voxel:
+                voxel_dict = self.voxelize(inputs['points'], data_samples)
+                batch_inputs['voxels'] = voxel_dict
 
         if 'imgs' in inputs:
             imgs = inputs['imgs']
@@ -346,8 +340,7 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
 
     @torch.no_grad()
     def voxelize(self, points: List[Tensor],
-                 data_samples: SampleList,
-                 gamma = 0.5) -> Dict[str, Tensor]:
+                 data_samples: SampleList) -> Dict[str, Tensor]:
         """Apply voxelization to point cloud.
 
         Args:
@@ -371,7 +364,7 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
         if self.voxel_type == 'hard':
             voxels, coors, num_points, voxel_centers = [], [], [], []
             for i, res in enumerate(points):
-                res_voxels, res_coors, res_num_points = self.voxel_layer(res, gamma, flexible_voxel=flexible)
+                res_voxels, res_coors, res_num_points = self.voxel_layer(res)
                 res_voxel_centers = (
                     res_coors[:, [2, 1, 0]] + 0.5) * res_voxels.new_tensor(
                         self.voxel_layer.voxel_size) + res_voxels.new_tensor(
@@ -393,7 +386,7 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
             coors = []
             # dynamic voxelization only provide a coors mapping
             for i, res in enumerate(points):
-                res_coors = self.voxel_layer(res, gamma, flexible_voxel=flexible)
+                res_coors = self.voxel_layer(res)
                 res_coors = F.pad(res_coors, (1, 0), mode='constant', value=i)
                 coors.append(res_coors)
             voxels = torch.cat(points, dim=0)
@@ -420,10 +413,9 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
                         polar_res_clamp[:, coor_idx][
                             polar_res[:, coor_idx] <
                             min_bound[coor_idx]] = min_bound[coor_idx]
-                voxel_size = self.voxel_layer.voxel_size
                 res_coors = torch.floor(
                     (polar_res_clamp - min_bound) / polar_res_clamp.new_tensor(
-                        voxel_size)).int()
+                        self.voxel_layer.voxel_size)).int()
                 res_coors = F.pad(res_coors, (1, 0), mode='constant', value=i)
                 res_voxels = torch.cat((polar_res, res[:, :2], res[:, 3:]),
                                        dim=-1)
@@ -463,14 +455,14 @@ class Det3DDataPreprocessor(DetDataPreprocessor):
             coors = torch.cat(coors, dim=0)
             voxel_dict['point2voxel_maps'] = point2voxel_maps
             voxel_dict['voxel_inds'] = voxel_inds
+
         else:
             raise ValueError(f'Invalid voxelization type {self.voxel_type}')
 
         voxel_dict['voxels'] = voxels
         voxel_dict['coors'] = coors
-        
-        return voxel_dict
 
+        return voxel_dict
 
     def ravel_hash(self, x: np.ndarray) -> np.ndarray:
         """Get voxel coordinates hash for np.unique.

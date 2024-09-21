@@ -131,7 +131,7 @@ class VoxelizationByGridShape(nn.Module):
                  voxel_size: List = [],
                  grid_shape: List[int] = [],
                  max_voxels: Union[tuple, int] = 20000,
-                 deterministic: bool = True): ## edited flexible_voxel: bool = False
+                 deterministic: bool = True):
         super().__init__()
         if voxel_size and grid_shape:
             raise ValueError('voxel_size is mutually exclusive grid_shape')
@@ -160,24 +160,12 @@ class VoxelizationByGridShape(nn.Module):
             self.voxel_size = voxel_size
         else:
             raise ValueError('must assign a value to voxel_size or grid_shape')
-        self.voxel_size_orig = self.voxel_size
 
-    def forward(self, input: torch.Tensor,
-                gamma,
-                flexible_voxel = False) -> torch.Tensor:
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.training:
             max_voxels = self.max_voxels[0]
         else:
             max_voxels = self.max_voxels[1]
-        
-        self.voxel_size = self.voxel_size_orig
-        voxel_size = self.voxel_size_orig
-        if flexible_voxel:
-            voxel_size = torch.tensor(voxel_size, dtype=torch.float32)
-            voxel_size = voxel_size \
-                            + (torch.FloatTensor(voxel_size.shape).uniform_(-voxel_size[0], voxel_size[0]).to(voxel_size)) * gamma
-            voxel_size = voxel_size.tolist()
-            self.voxel_size = voxel_size
 
         return voxelization(input, self.voxel_size, self.point_cloud_range,
                             self.max_num_points, max_voxels,
