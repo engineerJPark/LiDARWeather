@@ -13,8 +13,6 @@ from .pointnet2_sa_ssg import PointNet2SASSG
 from .second import SECOND
 from .spvcnn_backone import MinkUNetBackboneV2, SPVCNNBackbone
 
-### newly addded
-from .minkunet_backbone_batchnormmixer import MinkUNetBackboneBatchNormMixer
 
 
 __all__ = [
@@ -22,6 +20,4 @@ __all__ = [
     'SECOND', 'DGCNNBackbone', 'PointNet2SASSG', 'PointNet2SAMSG',
     'MultiBackbone', 'DLANet', 'MinkResNet', 'Asymm3DSpconv',
     'MinkUNetBackbone', 'SPVCNNBackbone', 'MinkUNetBackboneV2',
-    ### newly addded
-    'MinkUNetBackboneBatchNormMixer'
 ]
