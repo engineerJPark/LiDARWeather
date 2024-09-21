@@ -260,6 +260,84 @@ class RandomFlip3D(RandomFlip):
 
 
 @TRANSFORMS.register_module()
+class RandomJitterPoints(BaseTransform):
+    """Randomly jitter point coordinates.
+
+    Different from the global translation in ``GlobalRotScaleTrans``, here we
+    apply different noises to each point in a scene.
+
+    Args:
+        jitter_std (list[float]): The standard deviation of jittering noise.
+            This applies random noise to all points in a 3D scene, which is
+            sampled from a gaussian distribution whose standard deviation is
+            set by ``jitter_std``. Defaults to [0.01, 0.01, 0.01]
+        clip_range (list[float]): Clip the randomly generated jitter
+            noise into this range. If None is given, don't perform clipping.
+            Defaults to [-0.05, 0.05]
+
+    Note:
+        This transform should only be used in point cloud segmentation tasks
+        because we don't transform ground-truth bboxes accordingly.
+        For similar transform in detection task, please refer to `ObjectNoise`.
+    """
+
+    def __init__(self,
+                 jitter_std: List[float] = [0.01, 0.01, 0.01],
+                 clip_range: List[float] = [-0.05, 0.05],
+                 reflectance_noise=None,
+                 exe_prob = 1.0) -> None:
+        seq_types = (list, tuple, np.ndarray)
+        if not isinstance(jitter_std, seq_types):
+            assert isinstance(jitter_std, (int, float)), \
+                f'unsupported jitter_std type {type(jitter_std)}'
+            jitter_std = [jitter_std, jitter_std, jitter_std]
+        self.jitter_std = jitter_std
+
+        if clip_range is not None:
+            if not isinstance(clip_range, seq_types):
+                assert isinstance(clip_range, (int, float)), \
+                    f'unsupported clip_range type {type(clip_range)}'
+                clip_range = [-clip_range, clip_range]
+        self.clip_range = clip_range
+        self.reflectance_noise = reflectance_noise
+
+        self.exe_prob = exe_prob
+
+    def transform(self, input_dict: dict) -> dict:
+        """Call function to jitter all the points in the scene.
+
+        Args:
+            input_dict (dict): Result dict from loading pipeline.
+
+        Returns:
+            dict: Results after adding noise to each point,
+            'points' key is updated in the result dict.
+        """
+        if np.random.rand() > self.exe_prob:
+            return input_dict
+
+        points = input_dict['points']
+        jitter_std = np.array(self.jitter_std, dtype=np.float32)
+        jitter_noise = \
+            np.random.randn(points.shape[0], 3) * jitter_std[None, :]
+        if self.clip_range is not None:
+            jitter_noise = np.clip(jitter_noise, self.clip_range[0],
+                                   self.clip_range[1])
+
+        points.translate(jitter_noise)
+        if self.reflectance_noise is not None:
+            reflectance_noise_ = np.random.randn(points.shape[0], 1) * self.reflectance_noise
+            points.tensor[:,-1] = torch.tensor(np.clip(points[:,-1].numpy() + reflectance_noise_, 0, 1), dtype=torch.float32).reshape(-1,)
+        return input_dict
+
+    def __repr__(self) -> str:
+        """str: Return a string that describes the module."""
+        repr_str = self.__class__.__name__
+        repr_str += f'(jitter_std={self.jitter_std},'
+        repr_str += f' clip_range={self.clip_range})'
+        return repr_str
+    
+@TRANSFORMS.register_module()
 class RandomRangeJitterPoints(BaseTransform):
     """Randomly jitter point coordinates.
     Apply jittering to regions that DSJ, ASJ is not applied.
